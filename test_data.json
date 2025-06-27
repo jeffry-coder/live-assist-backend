@@ -1,0 +1,26 @@
+{
+    "call_id": "test-call-12345",
+    "window_num": 2,
+    "turns": [
+        {
+            "speaker": "agent",
+            "transcript": "Thank you for confirming. Can you please try resetting your password using the 'Forgot Password' link and let me know if you receive a reset email?",
+            "timestamp": "2024-01-15T10:31:00Z"
+        },
+        {
+            "speaker": "customer",
+            "transcript": "Okay, I just tried that but I haven't received any email yet.",
+            "timestamp": "2024-01-15T10:31:20Z"
+        },
+        {
+            "speaker": "agent",
+            "transcript": "Sometimes it can take a few minutes. Could you also check your spam or junk folder?",
+            "timestamp": "2024-01-15T10:31:35Z"
+        },
+        {
+            "speaker": "customer",
+            "transcript": "I checked, but there's nothing there either.",
+            "timestamp": "2024-01-15T10:31:50Z"
+        }
+    ]
+}
