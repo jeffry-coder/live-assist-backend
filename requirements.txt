@@ -2,9 +2,8 @@ boto3
 botocore
 pydantic
 python-dotenv
-langchain-openai
 langchain-core
 langchain-community
 langgraph
-langchain-mcp-adapters
 langchain-aws
+langchain-openai

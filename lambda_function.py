@@ -10,7 +10,7 @@ from agent_executor import Agent
 
 # SetUp
 load_dotenv()
-DDB_TABLE = "newAgentActions"
+DDB_TABLE = "call-records"
 dynamodb_client = boto3.client("dynamodb")
 
 logger = logging.getLogger()

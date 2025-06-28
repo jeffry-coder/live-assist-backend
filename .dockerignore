@@ -1,5 +1,4 @@
 __pycache__
 .venv
-tool_testing.py
-test_api.py
-test_data.json
+.env
+others/

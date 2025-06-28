@@ -2,7 +2,7 @@ import json
 import requests
 
 # Lambda URL (replace with your actual Lambda endpoint)
-LAMBDA_URL = "https://k3xpefts1e.execute-api.ap-southeast-2.amazonaws.com/dev/callAgent"
+LAMBDA_URL = "https://egy9qthh94.execute-api.ap-southeast-2.amazonaws.com/default/callAgent"
 headers = {"Content-Type": "application/json"}
 
 # Load test data from JSON file

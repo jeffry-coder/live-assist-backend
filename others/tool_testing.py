@@ -1,9 +1,3 @@
-"""
-Tool Testing Script for Agent Toolkit
-
-This script tests all tools in agent_toolkit.py with dummy data to verify functionality.
-"""
-
 import json
 from dotenv import load_dotenv
 from agent_toolkit import (

@@ -1,10 +1,3 @@
-"""
-HubSpot CRM Toolkit for Customer Service Operations
-
-This module provides essential HubSpot CRM operations for customer service calls,
-decorated with LangChain tools for AI agent integration.
-"""
-
 import requests
 import json
 import os
