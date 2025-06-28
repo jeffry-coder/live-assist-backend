@@ -1,4 +1,5 @@
 import json
+import datetime
 import logging
 import boto3
 from boto3.dynamodb.conditions import Key
@@ -59,6 +60,7 @@ def lambda_handler(event, context):
         # 5) save post-call analytics with client_email as primary key
         analytics_table.put_item(Item={
             "client_email": client_email,
+            "created_at": datetime.datetime.now(datetime.UTC).isoformat(),
             "call_id": call_id,
             **analytics.model_dump()
         })
