@@ -5,7 +5,7 @@ import boto3
 from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 from langchain_openai import ChatOpenAI
-from langchain.output_parsers import PydanticOutputParser
+from langchain_core.output_parsers import PydanticOutputParser
 from models import AnalyticsOutput
 
 # Set up logging
