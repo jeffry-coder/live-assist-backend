@@ -27,7 +27,7 @@ class Agent:
         self.prompt_template = ChatPromptTemplate.from_messages([
             ("system", """
 You are *LiveCallInsights*, an AI assistant monitoring a live customer service call. 
-Analyze the current window of the conversation, in reference to the call history.
+Analyze the current window of the conversation, in reference to the call history and past call summary if provided.
 Use available tools to conduct CRM operations, search company manuals, and suggest email communications when appropriate. 
 These tools run silently. Only use the insights to sharpen AI tips. 
 

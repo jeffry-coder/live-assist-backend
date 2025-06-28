@@ -11,6 +11,7 @@ from agent_executor import Agent
 # SetUp
 load_dotenv()
 DDB_TABLE = "call-records"
+CALL_ANALYTICS_TABLE = "call-analytics"
 dynamodb_client = boto3.client("dynamodb")
 
 logger = logging.getLogger()
@@ -34,6 +35,33 @@ def get_call_history(call_id, current_window):
         return []
 
 
+def get_past_call_summary(client_email):
+    """Retrieve the most recent call summary from call-analytics table for a given client email"""
+    try:
+        # Scan the call-analytics table for records with the given client email
+        response = dynamodb_client.scan(
+            TableName=CALL_ANALYTICS_TABLE,
+            FilterExpression="client_email = :email",
+            ExpressionAttributeValues={
+                ":email": {"S": client_email}
+            },
+            ScanIndexForward=False,  # Sort in descending order (newest first)
+            Limit=1  # Only get the most recent record
+        )
+        
+        items = response.get("Items", [])
+        if items:
+            memory_dict = json.loads(items[0].get("memory", {}).get("S", "{}"))
+            return memory_dict
+        else:
+            logger.info(f"No previous call records found for client email: {client_email}")
+            return {}
+            
+    except ClientError as e:
+        logger.error(f"Error fetching past call summary: {e}")
+        return {}
+
+
 def lambda_handler(event, context):
     # 1) Parse and validate input
     try:
@@ -41,6 +69,7 @@ def lambda_handler(event, context):
         call_id = payload["call_id"]
         window_num = int(payload["window_num"])
         turns = payload["turns"]  # list of { speaker, transcript, timestamp? }
+        client_email = payload["client_email"]  # Required parameter for client email
     except (KeyError, ValueError, TypeError) as e:
         logger.error(f"Invalid input payload: {e}")
         return {"statusCode": 400, "body": json.dumps({"error": "Bad request: missing or invalid fields"})}
@@ -55,13 +84,17 @@ def lambda_handler(event, context):
             "activityFeed": json.loads(item.get("activityFeed", {}).get("S", "[]"))
         })
 
-    # 3) Build agent input
+    # 3) Get past call summary
+    past_call_summary = get_past_call_summary(client_email)
+
+    # 4) Build agent input
     agent_input = {
         "current_window": {"turns": turns},
-        "call_history": call_history
+        "call_history": call_history,
+        "past_call_summary": past_call_summary
     }
 
-    # 4) Invoke Bedrock agent
+    # 5) Invoke Bedrock agent
     agent = Agent()
     try:
         ai_tips, tool_calls = agent.analyze_transcript(agent_input)
@@ -71,11 +104,11 @@ def lambda_handler(event, context):
         logger.error(f"Agent invocation failed: {e}")
         return {"statusCode": 502, "body": json.dumps({"error": "Agent processing error"})}
 
-    # 5) Extract results
+    # 6) Extract results
     ai_tips = [tip.model_dump() for tip in ai_tips]
     activity_feed = [act.model_dump() for act in tool_calls]
 
-    # 6) Persist to DynamoDB
+    # 7) Persist to DynamoDB
     try:
         dynamodb_client.put_item(
             TableName=DDB_TABLE,
@@ -91,7 +124,7 @@ def lambda_handler(event, context):
     except ClientError as e:
         logger.error(f"DynamoDB put error: {e}")
 
-    # 7) Return API response
+    # 8) Return API response
     body = {"aiTips": ai_tips, "activityFeed": activity_feed}
     return {"statusCode": 200, "body": json.dumps(body)}
 
