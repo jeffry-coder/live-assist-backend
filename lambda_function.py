@@ -38,10 +38,10 @@ def get_call_history(call_id, current_window):
 def get_past_call_summary(client_email):
     """Retrieve the most recent call summary from call-analytics table for a given client email"""
     try:
-        # Scan the call-analytics table for records with the given client email
-        response = dynamodb_client.scan(
+        # Query the call-analytics table for records with the given client email, sorted by created_at descending
+        response = dynamodb_client.query(
             TableName=CALL_ANALYTICS_TABLE,
-            FilterExpression="client_email = :email",
+            KeyConditionExpression="client_email = :email",
             ExpressionAttributeValues={
                 ":email": {"S": client_email}
             },
@@ -129,7 +129,7 @@ def lambda_handler(event, context):
     return {"statusCode": 200, "body": json.dumps(body)}
 
 if __name__ == "__main__":
-    with open("test_data.json", "r") as f:
+    with open("test/test_data.json", "r") as f:
         test_data = json.load(f)
     response = lambda_handler({"body": json.dumps(test_data)}, None)
     print(response)
