@@ -1,26 +1,26 @@
 {
-    "call_id": "test-call-2",
+    "call_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
     "window_num": 1,
-    "client_email": "test@example.com",
+    "client_email": "nikolay.kuznetsov@gmail.com",
     "turns": [
         {
             "speaker": "agent",
-            "transcript": "Thank you for confirming. Can you please try resetting your password using the 'Forgot Password' link and let me know if you receive a reset email?",
+            "transcript": "I understand you're having trouble with the password reset. Let me help you with that.",
             "timestamp": "2024-01-15T10:31:00Z"
         },
         {
             "speaker": "customer",
-            "transcript": "Okay, I just tried that but I haven't received any email yet.",
+            "transcript": "Yes, I've been trying to reset my password but the automated system isn't working. Can you send me an email with the reset instructions?",
             "timestamp": "2024-01-15T10:31:20Z"
         },
         {
             "speaker": "agent",
-            "transcript": "Sometimes it can take a few minutes. Could you also check your spam or junk folder?",
+            "transcript": "I can definitely help you with that. I'll send you an email with detailed password reset instructions right away.",
             "timestamp": "2024-01-15T10:31:35Z"
         },
         {
             "speaker": "customer",
-            "transcript": "I checked, but there's nothing there either.",
+            "transcript": "Perfect, thank you. I'll keep an eye out for that email.",
             "timestamp": "2024-01-15T10:31:50Z"
         }
     ]
