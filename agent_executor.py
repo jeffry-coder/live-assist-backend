@@ -170,11 +170,13 @@ Customer asks about internal policy, product instructions, or process.
                             
                             tool_response = json.loads(next_msg.content)
                             status = tool_response['status']
-                            message = tool_response['message']
+                            if tool_call['name'] == 'search_company_manuals' and status == 'success':
+                                message = tool_response['sources']
+                            else:
+                                message = tool_response['message']
                     
                     # Ensure consistent input format
                     tool_input = tool_call.get('args', {})
-                    
                     tool_calls.append(ToolCall(
                         name=tool_call['name'],
                         input=json.dumps(tool_input),

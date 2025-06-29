@@ -1,6 +1,7 @@
 import requests
 import json
 import os
+from urllib.parse import urlparse
 from dotenv import load_dotenv
 from langchain.tools import tool
 from langchain_aws import AmazonKendraRetriever
@@ -381,21 +382,33 @@ def search_company_manuals(query: str) -> str:
         if not results:
             return json.dumps({
                 "status": "success",
-                "message": f"No results found for query: '{query}'"
+                "message": f"No results found for query: '{query}'",
+                "sources": []
             })
         
         # Format results for agent consumption
         formatted_results = []
+        sources = []
         for i, result in enumerate(results[:3], 1):  # Limit to top 5 results
             content = result.page_content[:1000] if hasattr(result, 'page_content') else str(result)
             source = result.metadata.get('source', 'Unknown') if hasattr(result, 'metadata') else 'Unknown'
+            # Extract filename from S3 URL without extension
+            if source.startswith('https://'):
+                # Parse URL to get the filename
+                parsed_url = urlparse(source)
+                filename = os.path.basename(parsed_url.path)
+                # Remove file extension
+                source = os.path.splitext(filename)[0]
+            
+            sources.append(source)
             formatted_results.append(f"{i}. Source: {source}\nContent: {content}\n")
         
         return json.dumps({
             "status": "success",
-            "message": "\n".join(formatted_results)
+            "message": "\n".join(formatted_results),
+            "sources": list(set(sources))
         })
-        
+    
     except Exception as e:
         return json.dumps({
             "status": "failed",
