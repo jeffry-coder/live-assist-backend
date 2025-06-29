@@ -2,6 +2,9 @@
 
 A Python-based AI agent system that provides real-time insights and automation for customer service calls. This backend processes live call transcripts, analyzes conversations using OpenAI's GPT models, and integrates with HubSpot CRM and AWS services to provide actionable tips and automated workflows.
 
+### 🚨 **Important: Switch to `post-call` branch for post-call analytics Lambda!**  
+> The main branch only handles live call features. For post-call processing, **go to the `post-call` branch**.
+
 ## 🏗️ Architecture
 
 The system consists of three main components:
