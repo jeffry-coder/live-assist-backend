@@ -1,7 +1,7 @@
 import requests
 import os
 import json
-from urllib.parse import urlparse
+from urllib.parse import urlparse, unquote
 from dotenv import load_dotenv
 from langchain.tools import tool
 from langchain_aws import AmazonKendraRetriever
@@ -175,13 +175,10 @@ def search_company_manuals(query: str) -> str:
         for result in results[:3]:  # Limit to top 5 results
             content = result.page_content[:1000] if hasattr(result, 'page_content') else str(result)
             source = result.metadata.get('source', 'Unknown') if hasattr(result, 'metadata') else 'Unknown'
-            # Extract filename from S3 URL without extension
             if source.startswith('https://'):
-                # Parse URL to get the filename
                 parsed_url = urlparse(source)
                 filename = os.path.basename(parsed_url.path)
-                # Remove file extension
-                source = os.path.splitext(filename)[0]
+                source = os.path.splitext(unquote(filename))[0]
             
             sources.append(source)
             formatted_results.append(content)

@@ -129,6 +129,16 @@ Customer asks about internal policy, product instructions, or process.
             """)
             ,("user", "Please analyze this conversation:\n{transcript}")
         ])
+
+        self.tool_names = {
+            "get_contact_by_email": "Get Contact by Email",
+            "create_support_ticket": "Create Support Ticket",
+            "update_contact_property": "Update Contact Property",
+            "get_contact_deals": "Get Contact Deals",
+            "search_contacts_by_company": "Search Contacts by Company",
+            "send_email": "Send Email",
+            "search_company_manuals": "Search Company Manuals"
+        }
         
         model = ChatOpenAI(model=model_name, temperature=0.0)
         self.agent = create_react_agent(model, TOOLKIT, response_format=Output)
@@ -168,7 +178,7 @@ Customer asks about internal policy, product instructions, or process.
                     # Ensure consistent input format
                     tool_input = tool_call.get('args', {})
                     tool_calls.append(ToolCall(
-                        name=tool_call['name'],
+                        name=self.tool_names[tool_call['name']],
                         input=json.dumps(tool_input),
                         output=json.dumps(message),
                         status=status
