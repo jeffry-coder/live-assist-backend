@@ -5,8 +5,8 @@ LAMBDA_URL = "https://r1m1mxunle.execute-api.ap-southeast-2.amazonaws.com/defaul
 headers = {"Content-Type": "application/json"}
 
 test_data = {
-    "client_email": "test@example.com",
-    "call_id": "test-call-1"
+    "call_id": "77b7470a-ab14-4563-9fe8-7726188ba180",
+    "client_email": "test@example.com"
 }
 
 # Send POST request to Lambda with test data
