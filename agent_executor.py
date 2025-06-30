@@ -93,16 +93,6 @@ Customer gives company name but not their email.
 
 ---
 
-### 🕓 get_contact_timeline
-
-**When:**  
-Customer references past interactions or unresolved issues.
-
-**Trigger example:**  
-> "I already talked to someone about this last week"
-
----
-
 ### 📩 send_email
 
 **When:**  

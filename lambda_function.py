@@ -115,8 +115,8 @@ def lambda_handler(event, context):
     return {
         "statusCode": 200,
         "body": json.dumps({
-            "aiTips": ai_tips_out,
-            "activityFeed": activity_feed_out
+            "aiTips": [tip for item in call_history for tip in item["aiTips"]] + ai_tips_out,
+            "activityFeed": [act for item in call_history for act in item["activityFeed"]] + activity_feed_out
         })
     }
 

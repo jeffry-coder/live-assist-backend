@@ -1,11 +1,10 @@
 import requests
-import json
 import os
+import json
 from urllib.parse import urlparse
 from dotenv import load_dotenv
 from langchain.tools import tool
 from langchain_aws import AmazonKendraRetriever
-import time
 
 # Load environment variables
 load_dotenv()
@@ -26,343 +25,128 @@ kendra_retriever = AmazonKendraRetriever(
     min_score_confidence=0.5
 )
 
-
 @tool
 def get_contact_by_email(email: str) -> str:
     """
     Retrieve contact information from HubSpot by email address.
-    Uses the search endpoint as HubSpot does not support direct lookup by email in the path.
-    Args:
-        email: The email address of the contact to retrieve
-    Returns:
-        JSON string containing contact details or error message
     """
     try:
         url = "https://api.hubapi.com/crm/v3/objects/contacts/search"
-        data = {
-            "filterGroups": [
-                {
-                    "filters": [
-                        {
-                            "propertyName": "email",
-                            "operator": "EQ",
-                            "value": email
-                        }
-                    ]
-                }
-            ],
+        payload = {
+            "filterGroups": [{"filters": [{"propertyName": "email", "operator": "EQ", "value": email}]}],
             "properties": ["email", "firstname", "lastname", "company", "phone"],
             "limit": 1
         }
-        response = requests.post(url, headers=HEADERS, json=data)
-        if response.status_code == 200:
-            results = response.json().get("results", [])
-            if results:
-                return json.dumps({
-                    "status": "success",
-                    "message": results[0]
-                })
-            else:
-                return json.dumps({
-                    "status": "failed",
-                    "message": f"No contact found for email: {email}"
-                })
-        else:
-            return json.dumps({
-                "status": "failed",
-                "message": f"Error retrieving contact: {response.status_code} - {response.text}"
-            })
+        resp = requests.post(url, headers=HEADERS, json=payload)
+        if resp.status_code != 200:
+            return json.dumps({"status": "failed", "message": f"Error retrieving contact (status {resp.status_code})."})
+        data = resp.json().get('results', [])
+        if not data:
+            return json.dumps({"status": "failed", "message": f"No contact found for email: {email}."})
+        c = data[0]['properties']
+        fname = c.get('firstname', '<no first name>')
+        lname = c.get('lastname', '<no last name>')
+        comp = c.get('company', '<no company>')
+        phone = c.get('phone', '<no phone>')
+        msg = f"Found contact: {fname} {lname}, Email: {email}, Company: {comp}, Phone: {phone}."
+        return json.dumps({"status": "success", "message": msg})
     except Exception as e:
-        return json.dumps({
-            "status": "failed",
-            "message": f"Error: {str(e)}"
-        })
-
+        return json.dumps({"status": "failed", "message": f"Exception retrieving contact: {e}."})
 
 @tool
 def create_support_ticket(subject: str, description: str, priority: str) -> str:
     """
     Create a support ticket in HubSpot for a contact.
-    Associates the ticket with the contact using the associations field.
-    Args:
-        contact_id: HubSpot contact ID
-        subject: Ticket subject line
-        description: Detailed description of the issue
-        priority: Ticket priority (LOW, MEDIUM, HIGH)
-    Returns:
-        JSON string with ticket details or error message
     """
     try:
         url = "https://api.hubapi.com/crm/v3/objects/tickets"
-        data = {
-            "properties": {
-                "hs_ticket_priority": priority.upper(),
-                "subject": subject,
-                "content": description,
-                "hs_pipeline_stage": "1"  # Default to 'New' stage; adjust as needed
-            },
-        }
-        response = requests.post(url, headers=HEADERS, json=data)
-        if response.status_code == 201:
-            return json.dumps({
-                "status": "success",
-                "message": response.json()
-            })
-        else:
-            return json.dumps({
-                "status": "failed",
-                "message": f"Error creating ticket: {response.status_code} - {response.text}"
-            })
+        payload = {"properties": {
+            "subject": subject,
+            "content": description,
+            "hs_ticket_priority": priority.upper(),
+            "hs_pipeline_stage": "1"
+        }}
+        resp = requests.post(url, headers=HEADERS, json=payload)
+        if resp.status_code != 201:
+            return json.dumps({"status": "failed", "message": f"Error creating ticket (status {resp.status_code})."})
+        tid = resp.json().get('id', '<unknown>')
+        return json.dumps({"status": "success", "message": f"Ticket created successfully with ID {tid}."})
     except Exception as e:
-        return json.dumps({
-            "status": "failed",
-            "message": f"Error: {str(e)}"
-        })
-
-
-@tool
-def log_call_activity(contact_id: str, call_duration: int, call_outcome: str, notes: str) -> str:
-    """
-    Log a customer service call as an activity in HubSpot.
-    Adds required hs_timestamp property.
-    Args:
-        contact_id: HubSpot contact ID
-        call_duration: Duration of call in seconds
-        call_outcome: Outcome of the call (COMPLETED, NO_ANSWER, BUSY, etc.)
-        notes: Call notes and summary
-    Returns:
-        JSON string with activity details or error message
-    """
-    try:
-        url = "https://api.hubapi.com/crm/v3/objects/calls"
-        data = {
-            "properties": {
-                "hs_call_duration": str(call_duration),
-                "hs_call_status": call_outcome.upper(),
-                "hs_call_body": notes,
-                "hs_call_direction": "INBOUND",
-                "hs_timestamp": str(int(time.time() * 1000))  # Current time in ms
-            },
-            "associations": [
-                {
-                    "to": {"id": contact_id},
-                    "types": [{"associationCategory": "HUBSPOT_DEFINED", "associationTypeId": 194}]
-                }
-            ]
-        }
-        response = requests.post(url, headers=HEADERS, json=data)
-        if response.status_code == 201:
-            return json.dumps({
-                "status": "success",
-                "message": response.json()
-            })
-        else:
-            return json.dumps({
-                "status": "failed",
-                "message": f"Error logging call: {response.status_code} - {response.text}"
-            })
-    except Exception as e:
-        return json.dumps({
-            "status": "failed",
-            "message": f"Error: {str(e)}"
-        })
-
+        return json.dumps({"status": "failed", "message": f"Exception creating ticket: {e}."})
 
 @tool
 def update_contact_property(contact_id: str, property_name: str, property_value: str) -> str:
     """
     Update a specific property of a contact in HubSpot.
-    
-    Args:
-        contact_id: HubSpot contact ID
-        property_name: Name of the property to update
-        property_value: New value for the property
-        
-    Returns:
-        Success message or error message
     """
     try:
         url = f"https://api.hubapi.com/crm/v3/objects/contacts/{contact_id}"
-        
-        data = {
-            "properties": {
-                property_name: property_value
-            }
-        }
-        
-        response = requests.patch(url, headers=HEADERS, json=data)
-        
-        if response.status_code == 200:
-            return json.dumps({
-                "status": "success",
-                "message": f"Successfully updated {property_name} to {property_value}"
-            })
-        else:
-            return json.dumps({
-                "status": "failed",
-                "message": f"Error updating contact: {response.status_code} - {response.text}"
-            })
-            
+        payload = {"properties": {property_name: property_value}}
+        resp = requests.patch(url, headers=HEADERS, json=payload)
+        if resp.status_code != 200:
+            return json.dumps({"status": "failed", "message": f"Error updating contact (status {resp.status_code})."})
+        return json.dumps({"status": "success", "message": f"Updated {property_name} to '{property_value}' for contact {contact_id}."})
     except Exception as e:
-        return json.dumps({
-            "status": "failed",
-            "message": f"Error: {str(e)}"
-        })
-
+        return json.dumps({"status": "failed", "message": f"Exception updating contact: {e}."})
 
 @tool
 def get_contact_deals(contact_id: str) -> str:
     """
-    Retrieve all deals associated with a contact, returning deal summaries.
-    Args:
-        contact_id: HubSpot contact ID
-    Returns:
-        JSON string containing a list of deal summaries or error message
+    Retrieve all deals associated with a contact.
     """
     try:
         url = f"https://api.hubapi.com/crm/v3/objects/contacts/{contact_id}/associations/deals"
-        response = requests.get(url, headers=HEADERS)
-        if response.status_code != 200:
-            return json.dumps({
-                "status": "failed",
-                "message": f"Error retrieving deals: {response.status_code} - {response.text}"
-            })
-        deals_data = response.json().get("results", [])
-        deal_summaries = []
-        for deal in deals_data:
-            deal_id = deal.get("id")
-            if not deal_id:
-                continue
-            # Fetch deal details
-            deal_url = f"https://api.hubapi.com/crm/v3/objects/deals/{deal_id}?properties=dealname,amount,dealstage,closedate"
-            deal_resp = requests.get(deal_url, headers=HEADERS)
-            if deal_resp.status_code == 200:
-                deal_info = deal_resp.json()
-                properties = deal_info.get("properties", {})
-                deal_summaries.append({
-                    "id": deal_id,
-                    "name": properties.get("dealname"),
-                    "amount": properties.get("amount"),
-                    "stage": properties.get("dealstage"),
-                    "close_date": properties.get("closedate")
-                })
-            else:
-                deal_summaries.append({
-                    "id": deal_id,
-                    "error": f"Could not fetch details: {deal_resp.status_code}"
-                })
-        return json.dumps({
-            "status": "success",
-            "message": deal_summaries
-        })
+        resp = requests.get(url, headers=HEADERS)
+        if resp.status_code != 200:
+            return json.dumps({"status": "failed", "message": f"Error retrieving deals (status {resp.status_code})."})
+        results = resp.json().get('results', [])
+        if not results:
+            return json.dumps({"status": "failed", "message": f"No deals found for contact {contact_id}."})
+        summaries = []
+        for d in results:
+            did = d.get('id')
+            deal_url = f"https://api.hubapi.com/crm/v3/objects/deals/{did}?properties=dealname,amount"
+            dr = requests.get(deal_url, headers=HEADERS)
+            if dr.status_code == 200:
+                props = dr.json().get('properties', {})
+                name = props.get('dealname', '<no name>')
+                amt = props.get('amount', '<no amount>')
+                summaries.append(f"{name} (${amt})")
+        msg = f"Found {len(summaries)} deals: {', '.join(summaries)}."
+        return json.dumps({"status": "success", "message": msg})
     except Exception as e:
-        return json.dumps({
-            "status": "failed",
-            "message": f"Error: {str(e)}"
-        })
-
+        return json.dumps({"status": "failed", "message": f"Exception retrieving deals: {e}."})
 
 @tool
 def search_contacts_by_company(company_name: str) -> str:
     """
-    Search for contacts by company name in HubSpot.
-    
-    Args:
-        company_name: Name of the company to search for
-        
-    Returns:
-        JSON string containing matching contacts or error message
+    Search for contacts by company name.
     """
     try:
         url = "https://api.hubapi.com/crm/v3/objects/contacts/search"
-        
-        data = {
-            "filterGroups": [
-                {
-                    "filters": [
-                        {
-                            "propertyName": "company",
-                            "operator": "CONTAINS_TOKEN",
-                            "value": company_name
-                        }
-                    ]
-                }
-            ],
-            "properties": ["email", "firstname", "lastname", "company", "phone"],
+        payload = {
+            "filterGroups": [{"filters": [{"propertyName": "company", "operator": "CONTAINS_TOKEN", "value": company_name}]}],
+            "properties": ["email", "firstname", "lastname"],
             "limit": 10
         }
-        
-        response = requests.post(url, headers=HEADERS, json=data)
-        
-        if response.status_code == 200:
-            return json.dumps({
-                "status": "success",
-                "message": response.json()
-            })
-        else:
-            return json.dumps({
-                "status": "failed",
-                "message": f"Error searching contacts: {response.status_code} - {response.text}"
-            })
-            
+        resp = requests.post(url, headers=HEADERS, json=payload)
+        if resp.status_code != 200:
+            return json.dumps({"status": "failed", "message": f"Error searching contacts (status {resp.status_code})."})
+        results = resp.json().get('results', [])
+        if not results:
+            return json.dumps({"status": "failed", "message": f"No contacts found for company '{company_name}'."})
+        contacts = [f"{c['properties'].get('firstname','')} {c['properties'].get('lastname','')} ({c['properties'].get('email','')})" for c in results]
+        msg = f"Found {len(contacts)} contacts: {', '.join(contacts[:5])}."
+        return json.dumps({"status": "success", "message": msg})
     except Exception as e:
-        return json.dumps({
-            "status": "failed",
-            "message": f"Error: {str(e)}"
-        })
-
-
-@tool
-def get_contact_timeline(contact_id: str) -> str:
-    """
-    Retrieve the activity timeline for a contact.
-    
-    Args:
-        contact_id: HubSpot contact ID
-        
-    Returns:
-        JSON string containing timeline activities or error message
-    """
-    try:
-        url = f"https://api.hubapi.com/crm/v3/objects/contacts/{contact_id}/associations/calls"
-        
-        response = requests.get(url, headers=HEADERS)
-        
-        if response.status_code == 200:
-            return json.dumps({
-                "status": "success",
-                "message": response.json()
-            })
-        else:
-            return json.dumps({
-                "status": "failed",
-                "message": f"Error retrieving timeline: {response.status_code} - {response.text}"
-            })
-            
-    except Exception as e:
-        return json.dumps({
-            "status": "failed",
-            "message": f"Error: {str(e)}"
-        })
-
+        return json.dumps({"status": "failed", "message": f"Exception searching contacts: {e}."})
 
 @tool
 def send_email(subject: str, body: str) -> str:
     """
     Send an email with the given subject and body.
-    
-    Args:
-        subject: Email subject line
-        body: Email body content
-        
-    Returns:
-        Confirmation message
     """
-    return json.dumps({
-        "status": "success",
-        "message": "Email will be sent shortly"
-    })
-
+    return json.dumps({"status": "success", "message": f"Email queued with subject '{subject}'."})
 
 @tool
 def search_company_manuals(query: str) -> str:
@@ -381,15 +165,14 @@ def search_company_manuals(query: str) -> str:
         
         if not results:
             return json.dumps({
-                "status": "success",
+                "status": "failed",
                 "message": f"No results found for query: '{query}'",
-                "sources": []
             })
         
         # Format results for agent consumption
         formatted_results = []
         sources = []
-        for i, result in enumerate(results[:3], 1):  # Limit to top 5 results
+        for result in results[:3]:  # Limit to top 5 results
             content = result.page_content[:1000] if hasattr(result, 'page_content') else str(result)
             source = result.metadata.get('source', 'Unknown') if hasattr(result, 'metadata') else 'Unknown'
             # Extract filename from S3 URL without extension
@@ -401,12 +184,12 @@ def search_company_manuals(query: str) -> str:
                 source = os.path.splitext(filename)[0]
             
             sources.append(source)
-            formatted_results.append(f"{i}. Source: {source}\nContent: {content}\n")
+            formatted_results.append(content)
         
         return json.dumps({
             "status": "success",
-            "message": "\n".join(formatted_results),
-            "sources": list(set(sources))
+            "message": "\n\n".join(formatted_results),
+            "sources": "Read these documents: " + ", ".join(list(set(sources)))
         })
     
     except Exception as e:
@@ -415,7 +198,6 @@ def search_company_manuals(query: str) -> str:
             "message": f"Error searching company manuals: {str(e)}"
         })
 
-
 # Toolkit constant containing all HubSpot tools
 TOOLKIT = [
     get_contact_by_email,
@@ -423,7 +205,6 @@ TOOLKIT = [
     update_contact_property,
     get_contact_deals,
     search_contacts_by_company,
-    get_contact_timeline,
-    send_email, # Suggested action to frontend
+    send_email,
     search_company_manuals
 ]
